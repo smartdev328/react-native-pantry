@@ -37,7 +37,7 @@ function CartScreen() {
     return (
       <SafeAreaView style={{ ...styles.container, paddingHorizontal: 16 }}>
         <PageHeader title="Cart" />
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#54634B" style={styles.loader} />
       </SafeAreaView>
     );
   }
@@ -125,4 +125,5 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 24,
   },
+  loader: { marginVertical: 24 },
 });

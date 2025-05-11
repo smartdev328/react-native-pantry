@@ -53,7 +53,7 @@ function ProfileScreen() {
     return (
       <SafeAreaView style={{ ...styles.container, paddingHorizontal: 16 }}>
         <PageHeader title="Profile" />
-        <ActivityIndicator size="large" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" style={{ flex: 1 }} color="#54634B" />
       </SafeAreaView>
     );
   }

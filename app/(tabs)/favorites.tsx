@@ -39,7 +39,7 @@ function FavoritesScreen() {
     return (
       <SafeAreaView style={{ ...styles.container, paddingHorizontal: 16 }}>
         <PageHeader title="Favorites" />
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#54634B" style={styles.loader} />
       </SafeAreaView>
     );
   }

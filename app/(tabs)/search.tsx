@@ -27,6 +27,7 @@ function SearchHeader({ query, setQuery }: { query: string; setQuery: (query: st
         placeholder="Search meals..."
         value={query}
         color='#54634B'
+        placeholderTextColor="#54634B"
         label="Search"
         onChangeText={setQuery}
         returnKeyType="search"
@@ -59,7 +60,7 @@ function SearchScreen() {
     return (
       <SafeAreaView style={{ ...styles.container, paddingHorizontal: 16 }}>
         <SearchHeader query={query} setQuery={setQuery} />
-        <ActivityIndicator size="large" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" style={styles.loader} color="#54634B" />
       </SafeAreaView>
     );
   }
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   loader: {
-    marginTop: 20,
+    marginTop: 24,
   },
   messageContainer: {
     flex: 1,

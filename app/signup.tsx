@@ -3,7 +3,8 @@ import TextInputWithIcon from "@/components/TextInputWithIcon";
 import { useAuth } from "@/context/auth.context";
 import { Icon } from "@react-native-material/core";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { Formik, FormikHelpers } from "formik";
+import React from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -12,21 +13,39 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Yup from "yup";
+
+interface SignUpValues {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
+const SignUpSchema = Yup.object().shape({
+  name: Yup.string().required("Full name is required"),
+  email: Yup.string()
+    .email("Please enter a valid email")
+    .required("Email is required"),
+  phone: Yup.string().required("Mobile number is required"),
+  password: Yup.string().required("Password is required"),
+});
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
 
-  const handleSignUp = async () => {
+  const onSubmit = async (
+    values: SignUpValues,
+    { setSubmitting, setErrors }: FormikHelpers<SignUpValues>
+  ) => {
     try {
-      await signUp(email, password, phone, name);
+      await signUp(values.email, values.password, values.phone, values.name);
       router.replace("/(tabs)/products");
-    } catch (e: unknown) {
-      alert((e as Error).message);
+    } catch (err: unknown) {
+      setErrors({ password: (err as Error).message });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -52,42 +71,88 @@ export default function SignUpScreen() {
           <Text style={styles.subtitleText}>and much more</Text>
         </View>
         <View style={styles.divider}></View>
-        <View style={styles.formContainer}>
-          <TextInputWithIcon
-            label="Full name"
-            color="#54634B"
-            placeholder="Enter your full name"
-            value={name}
-            onChangeText={setName}
-          />
-          <TextInputWithIcon
-            label="Email"
-            color="#54634B"
-            type="emailAddress"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <TextInputWithIcon
-            label="Mobile number"
-            color="#54634B"
-            type="phone"
-            placeholder="Enter your mobile number"
-            value={phone}
-            onChangeText={setPhone}
-          />
-          <TextInputWithIcon
-            label="Password"
-            type="password"
-            color="#54634B"
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-          />
-          <View style={{ marginTop: 16 }}>
-            <RoundedButton title="Sign up" onPress={handleSignUp} />
-          </View>
-        </View>
+        <Formik<SignUpValues>
+          initialValues={{ name: "", email: "", phone: "", password: "" }}
+          validationSchema={SignUpSchema}
+          onSubmit={onSubmit}
+        >
+          {({
+            handleChange,
+            handleBlur,
+            handleSubmit,
+            values,
+            errors,
+            touched,
+            isSubmitting,
+            isValid,
+          }) => (
+            <View style={styles.formContainer}>
+              <View style={styles.formField}>
+                <TextInputWithIcon
+                  label="Full name"
+                  color="#54634B"
+                  placeholder="Enter your full name"
+                  value={values.name}
+                  onChangeText={handleChange("name")}
+                  onBlur={handleBlur("name")}
+                />
+                {touched.name && errors.name && (
+                  <Text style={styles.errorText}>{errors.name}</Text>
+                )}
+              </View>
+              <View style={styles.formField}>
+                <TextInputWithIcon
+                  label="Email"
+                  color="#54634B"
+                  type="emailAddress"
+                  placeholder="Enter your email"
+                  value={values.email}
+                  onChangeText={handleChange("email")}
+                  onBlur={handleBlur("email")}
+                />
+                {touched.email && errors.email && (
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                )}
+              </View>
+              <View style={styles.formField}>
+                <TextInputWithIcon
+                  label="Mobile number"
+                  color="#54634B"
+                  type="phone"
+                  placeholder="Enter your mobile number"
+                  value={values.phone}
+                  onChangeText={handleChange("phone")}
+                  onBlur={handleBlur("phone")}
+                />
+                {touched.phone && errors.phone && (
+                  <Text style={styles.errorText}>{errors.phone}</Text>
+                )}
+              </View>
+              <View style={styles.formField}>
+                <TextInputWithIcon
+                  label="Password"
+                  type="password"
+                  color="#54634B"
+                  placeholder="Enter your password"
+                  value={values.password}
+                  onChangeText={handleChange("password")}
+                  onBlur={handleBlur("password")}
+                />
+                {touched.password && errors.password && (
+                  <Text style={styles.errorText}>{errors.password}</Text>
+                )}
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <RoundedButton
+                  title="Sign up"
+                  onPress={handleSubmit as () => void}
+                  disabled={isSubmitting || !isValid}
+                />
+              </View>
+            </View>
+          )}
+        </Formik>
         <View style={styles.authLinkBtnContainer}>
           <Text style={styles.authLinkText}>Have an account?</Text>
           <TouchableOpacity onPress={() => router.push("/login")}>
@@ -137,7 +202,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#54634B",
     marginTop: 8,
   },
-  formContainer: { marginTop: 58, gap: 24 },
+  formContainer: { marginTop: 58 },
   authLinkBtnContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -178,4 +243,12 @@ const styles = StyleSheet.create({
     marginVertical: 24,
   },
   orDividerLine: { height: 1, flex: 1, backgroundColor: "#54634B" },
+  formField: {
+    marginBottom: 24,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    fontFamily: "Avenir-Regular",
+  },
 });

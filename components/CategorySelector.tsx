@@ -7,10 +7,11 @@ import {
 } from 'react-native';
 
 export default function MultiCategorySelector({
-  categories = ['All', 'Beef', 'Fish', 'Pork', 'Poultry'],
+  value,
   onChange,
-}: { onChange?: (selected: string[]) => void; categories?: string[] }) {
-  const [selected, setSelected] = useState(['All']);
+}: { value: string[]; onChange: (selected: string[]) => void; }) {
+  const categories = ['All', 'Beef', 'Fish', 'Pork', 'Poultry'];
+  const [selected, setSelected] = useState(value);
 
   const toggleCategory = (cat: string) => {
     let next;
@@ -26,8 +27,9 @@ export default function MultiCategorySelector({
     } else {
       next = [...selected, cat];
     }
+    next.sort();
     setSelected(next);
-    onChange?.(next);
+    onChange(next);
   };
 
   return (

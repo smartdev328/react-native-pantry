@@ -1,12 +1,6 @@
-import {
-  appendMealsToCache,
-  fetchMealsPage,
-  loadMealsFromCache,
-} from "@/api/meal.apis";
+import { fetchMealsByCategories } from "@/api/meal.apis";
 import CategorySelector from "@/components/CategorySelector";
 import MealCard from "@/components/MealCard";
-import { Meal } from "@/types";
-import NetInfo from "@react-native-community/netinfo";
 import { Icon } from "@react-native-material/core";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -26,7 +20,13 @@ const MARGIN = 16;
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - MARGIN * 3) / 2;
 
-function ProductsHeader() {
+function ProductsHeader({
+  value,
+  onCategoryChange,
+}: {
+  value: string[];
+  onCategoryChange: (categories: string[]) => void;
+}) {
   const router = useRouter();
 
   return (
@@ -48,12 +48,7 @@ function ProductsHeader() {
       </View>
       <View style={styles.divider}></View>
       <View style={{ marginTop: 30, marginBottom: 40 }}>
-        <CategorySelector
-          categories={["All", "Beef", "Fish", "Pork", "Poultry"]}
-          onChange={(selected) => {
-            console.log("Selected categories:", selected);
-          }}
-        />
+        <CategorySelector value={value} onChange={onCategoryChange} />
       </View>
       <View style={{ marginBottom: 20 }}>
         <Text style={styles.preheadText}>Based on your selection</Text>
@@ -64,35 +59,26 @@ function ProductsHeader() {
 }
 
 export default function Products() {
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>(['All']);
+
   const {
     data,
-    isLoading,
     isError,
+    isLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["getMealse"],
+    queryKey: ["getMeals", selectedCategories.join(",")],
     queryFn: async ({ pageParam = 0 }) => {
       const limit = pageParam === 0 ? 40 : 10;
-      const net = await NetInfo.fetch();
-      let meals: Meal[];
-      let totalPages: number = 0;
-
-      if (net.isConnected) {
-        // online → fetch & cache
-        const offset = pageParam === 0 ? 0 : (pageParam - 1) * limit + 40;
-        const { data, total } = await fetchMealsPage(offset, limit);
-        totalPages = Math.ceil((total - 40) / 10) + 1;
-        await appendMealsToCache(data, pageParam, totalPages);
-        meals = data;
-      } else {
-        // offline → load from cache
-        const { data, totalPages: cachedTotalPages } =
-          (await loadMealsFromCache(pageParam, limit)) || {};
-        meals = data || [];
-        totalPages = cachedTotalPages;
-      }
+      const offset = pageParam === 0 ? 0 : (pageParam - 1) * limit + 40;
+      const { data: meals, total } = await fetchMealsByCategories(
+        selectedCategories,
+        offset,
+        limit
+      );
+      const totalPages = Math.ceil((total - 40) / 10) + 1;
 
       return {
         meals,
@@ -105,16 +91,8 @@ export default function Products() {
       lastPage.totalPages > lastPage.nextOffset
         ? lastPage.nextOffset
         : undefined,
-    // staleTime: 1000 * 60 * 60,
   });
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator style={styles.loader} size="large" />
-      </View>
-    );
-  }
   if (isError) {
     return (
       <View style={styles.center}>
@@ -133,23 +111,23 @@ export default function Products() {
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.scrollContainer}
-        ListHeaderComponent={() => <ProductsHeader />}
+        ListHeaderComponent={() => (
+          <ProductsHeader value={selectedCategories} onCategoryChange={setSelectedCategories} />
+        )}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <MealCard meal={item} width={ITEM_WIDTH} />
           </View>
         )}
-        // → infinite scroll triggers
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
           }
         }}
         onEndReachedThreshold={0.5}
-        // show spinner at bottom when loading more
         ListFooterComponent={
-          isFetchingNextPage ? (
-            <ActivityIndicator style={styles.loader} />
+          (isLoading || isFetchingNextPage) ? (
+            <ActivityIndicator style={styles.loader} size="large" color="#54634B" />
           ) : null
         }
       />
@@ -215,7 +193,7 @@ const styles = StyleSheet.create({
     color: "#54634B",
     marginBottom: 4,
   },
-  loader: { marginVertical: 24 },
+  loader: { marginVertical: 24, },
   center: { flex: 1, justifyContent: "center" },
   error: {
     textAlign: "center",

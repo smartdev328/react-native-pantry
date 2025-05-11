@@ -50,7 +50,7 @@ const MealCard: React.FC<Props> = ({ meal, width }) => {
             <Icon
               name="heart"
               size={20}
-              color={isFavorite(meal.id) ? "red" : "gray"}
+              color={isFavorite(meal.id) ? "red" : "lightgrey"}
               style={{ marginRight: 8 }}
             />
           </TouchableOpacity>

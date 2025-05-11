@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: "#54634B",
+    width: "100%",
     fontFamily: "AGaramondPro-Italic",
   },
   price: {
@@ -89,6 +90,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 10,
+    width: "100%",
+    justifyContent: "space-between",
   },
   removeBtn: {
     borderWidth: 2,

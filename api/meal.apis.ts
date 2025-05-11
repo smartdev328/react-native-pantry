@@ -1,46 +1,19 @@
 import { Meal } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const MEALS_API_URL = "https://dummyjson.com/recipes";
+const MEALS_API_URL = "https://api.spoonacular.com/recipes";
+const API_KEY = "b257caf8778c468d87e056795ad7dc29";
 const MEALS_CACHE_KEY = "meals";
-const TOTAL_CACHE_KEY = "total_pages";
-
-// Fetch meals from API
-export async function fetchMealsPage(
-  offset: number = 0,
-  limit: number = 10
-): Promise<{ data: Meal[]; total: number }> {
-  try {
-    const res = await fetch(`${MEALS_API_URL}?limit=${limit}&skip=${offset}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-
-    const meals: Meal[] = (json.recipes || []).map((m: any, i: number) => ({
-      id: m.id,
-      name: m.name,
-      thumbnail: m.image,
-      category: m.tags,
-      price: m.id * 10,
-    }));
-
-    return { data: meals, total: json.total as number };
-  } catch (err) {
-    console.warn("Fetch failed, falling back to cache:", err);
-    const { data, totalPages } = await loadMealsFromCache(offset, limit);
-    return { data: data || [], total: totalPages };
-  }
-}
 
 export async function fetchMealById(id: string): Promise<Meal> {
   try {
-    const res = await fetch(`${MEALS_API_URL}/${id}`);
+    const res = await fetch(`${MEALS_API_URL}/${id}/information?apiKey=${API_KEY}`);
     const json = await res.json();
     const meal: Meal = {
       id: json.id,
-      name: json.name,
+      name: json.title,
       thumbnail: json.image,
-      category: json.tags,
-      price: json.id * 10,
+      price: json.id / 100,
     };
     const cacheKey = `meal_${id}`;
     await AsyncStorage.setItem(cacheKey, JSON.stringify(meal));
@@ -60,15 +33,14 @@ export async function searchMeals(query: string): Promise<Meal[]> {
   if (!query) return [];
 
   try {
-    const res = await fetch(`${MEALS_API_URL}/search?q=${query}`);
+    const res = await fetch(`${MEALS_API_URL}/complexSearch?apiKey=${API_KEY}&query=${query}`);
     const json = await res.json();
 
-    const meals: Meal[] = (json.recipes || []).map((m: any, i: number) => ({
+    const meals: Meal[] = (json.results || []).map((m: any, i: number) => ({
       id: m.id,
-      name: m.name,
+      name: m.title,
       thumbnail: m.image,
-      category: m.tags,
-      price: m.id * 10,
+      price: m.id / 100,
     }));
 
     return meals;
@@ -79,33 +51,70 @@ export async function searchMeals(query: string): Promise<Meal[]> {
   }
 }
 
-// Load meals from local cache (if present)
+export async function fetchMealsByCategories(categories: string[], offset: number,
+  limit: number): Promise<{ data: Meal[]; total: number }> {
+  const cacheKey = `${MEALS_CACHE_KEY}_${categories.join(',')}`;
+  try {
+    // fire off all category requests in parallel
+    let query = `apiKey=${API_KEY}&offset=${offset}&number=${limit}`;
+    if (!categories.includes("All")) {
+      query += `&includeIngredients=${categories.join(',')}`;
+    }
+    const res = await fetch(`${MEALS_API_URL}/complexSearch?${query}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch category ${categories.join(',')}: ${res.status}`);
+    }
+    const json = await res.json();
+    const meals: Meal[] = (json.results || []).map((m: any) => ({
+      id: m.id,
+      name: m.title,
+      thumbnail: m.image,
+      price: m.id / 100,
+    }));
+    await appendMealsToCache(cacheKey, meals, offset, json.totalResults);
+
+    return { data: meals, total: json.totalResults };
+  } catch (error) {
+    console.warn(
+      "fetchMealsByCategory: network error, falling back to cache",
+      error
+    );
+    const { data, totalPages } = await loadMealsFromCache(cacheKey, offset, limit);
+    return { data: data || [], total: totalPages };
+  }
+}
+
 export async function loadMealsFromCache(
+  cacheKey: string,
   offset: number,
-  limit: number
-): Promise<{ data: Meal[] | null; totalPages: number }> {
-  const all: Meal[] = JSON.parse(
-    (await AsyncStorage.getItem(MEALS_CACHE_KEY)) || "[]"
-  );
-  const totalPages = (await AsyncStorage.getItem(TOTAL_CACHE_KEY)) || "0";
-  return {
-    data: all.slice(offset, offset + limit),
-    totalPages: parseInt(totalPages),
-  };
+  limit: number,
+): Promise<{ data: Meal[]; totalPages: number }> {
+  const totalKey = `${cacheKey}_total`;
+  const cached = await AsyncStorage.getItem(cacheKey) ?? "[]";
+  const totalCount = await AsyncStorage.getItem(totalKey) ?? "0";
+  if (cached) {
+    const meals: Meal[] = JSON.parse(cached);
+    return {
+      data: meals.slice(offset, offset + limit),
+      totalPages: parseInt(totalCount),
+    };
+  }
+  return { data: [], totalPages: 0 };
 }
 
 export async function appendMealsToCache(
+  cacheKey: string,
   newMeals: Meal[],
   offset: number,
   totalPages: number
 ) {
-  await AsyncStorage.setItem(TOTAL_CACHE_KEY, totalPages.toString());
+  await AsyncStorage.setItem(`${cacheKey}_total`, totalPages ? totalPages.toString() : "0");
   if (offset === 0) {
-    await AsyncStorage.setItem(MEALS_CACHE_KEY, JSON.stringify(newMeals));
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(newMeals));
   } else {
-    const raw = await AsyncStorage.getItem(MEALS_CACHE_KEY);
+    const raw = await AsyncStorage.getItem(cacheKey);
     const existing: Meal[] = raw ? JSON.parse(raw) : [];
     const merged = [...existing, ...newMeals];
-    await AsyncStorage.setItem(MEALS_CACHE_KEY, JSON.stringify(merged));
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(merged));
   }
 }
