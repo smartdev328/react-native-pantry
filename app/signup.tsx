@@ -146,7 +146,8 @@ export default function SignUpScreen() {
               <View style={{ marginTop: 16 }}>
                 <RoundedButton
                   title="Sign up"
-                  onPress={handleSubmit as () => void}
+                  isLoading={isSubmitting}
+                  onPress={handleSubmit}
                   disabled={isSubmitting || !isValid}
                 />
               </View>

@@ -1,21 +1,29 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 
 interface ButtonProps extends TouchableOpacityProps {
+  onPress: () => void;
+  isLoading?: boolean;
+  style?: object;
   title: string;
   textStyle?: object;
 }
 
-export default function RoundedButton({ title, onPress, style, textStyle }: ButtonProps) {
+export default function RoundedButton({ title, onPress, style, textStyle, isLoading }: ButtonProps) {
   return (
     <TouchableOpacity
       style={[styles.button, style]}
       onPress={onPress}
       activeOpacity={0.7}
+      disabled={isLoading}
     >
-      <Text style={[styles.text, textStyle]}>
-        {title}
-      </Text>
+      {isLoading ? (
+        <ActivityIndicator color="#FCF9F5" />
+      ) : (
+        <Text style={[styles.text, textStyle]}>
+          {title}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }

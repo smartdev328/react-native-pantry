@@ -101,6 +101,7 @@ export default function LoginScreen() {
               <RoundedButton
                 title="Login"
                 onPress={() => handleSubmit()}
+                isLoading={isSubmitting}
                 disabled={isSubmitting || !isValid}
               />
             </View>

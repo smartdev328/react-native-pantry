@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './auth.context';
 
 interface CartItem {
   id: string;
@@ -19,16 +20,18 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { user } = useAuth()
 
   useEffect(() => {
-    AsyncStorage.getItem('cart').then(data => {
+    if (!user?.uid) return;
+    AsyncStorage.getItem(`cart_${user?.uid}`).then(data => {
       if (data) setCartItems(JSON.parse(data));
     });
-  }, []);
+  }, [user, user?.uid]);
 
   const saveCart = async (items: CartItem[]) => {
     try {
-      await AsyncStorage.setItem('cart', JSON.stringify(items));
+      await AsyncStorage.setItem(`cart_${user?.uid}`, JSON.stringify(items));
     } catch (e) {
       console.error('Failed to save cart', e);
     }
@@ -72,7 +75,7 @@ export const CartProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   const clearCart = () => {
     setCartItems([]);
-    AsyncStorage.removeItem('cart').catch(e => console.error('Failed to clear cart', e));
+    AsyncStorage.removeItem(`cart_${user?.uid}`).catch(e => console.error('Failed to clear cart', e));
   };
 
   return (

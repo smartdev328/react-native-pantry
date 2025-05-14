@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './auth.context';
 
 type FavoritesState = { [mealId: string]: boolean };
 
@@ -13,15 +14,16 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 
 export const FavoritesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [favorites, setFavorites] = useState<FavoritesState>({});
+  const { user } = useAuth();
 
   // Load favorites from storage on mount
   useEffect(() => {
-    AsyncStorage.getItem('favorites').then(data => {
+    AsyncStorage.getItem(`favorites_${user?.uid}`).then(data => {
       if (data) {
         setFavorites(JSON.parse(data));
       }
     });
-  }, []);
+  }, [user?.uid]);
 
   const toggleFavorite = async (mealId: string) => {
     setFavorites(prev => {
@@ -35,7 +37,7 @@ export const FavoritesProvider: React.FC<{children: React.ReactNode}> = ({ child
     });
     // Optimistically update UI immediately, then persist in background
     try {
-      await AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+      await AsyncStorage.setItem(`favorites_${user?.uid}`, JSON.stringify(favorites));
     } catch (e) {
       console.error('Failed to save favorites', e);
     }

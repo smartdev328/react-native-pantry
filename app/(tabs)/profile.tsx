@@ -23,6 +23,7 @@ function ProfileScreen() {
   const { user, loading: authLoading, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -84,6 +85,10 @@ function ProfileScreen() {
 
       <Text style={styles.label}>Joined:</Text>
       <Text style={styles.value}>{profile.createdAt}</Text>
+
+      <View style={{ marginTop: 24}}>
+        <RoundedButton title="Logout" isLoading={isLoggingOut} onPress={() => {setLoggingOut(true); logout();}} />
+      </View>
     </SafeAreaView>
   );
 }

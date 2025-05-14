@@ -113,7 +113,6 @@ export default SearchScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
     backgroundColor: "#FCF9F5",
     paddingTop: 50,
   },
